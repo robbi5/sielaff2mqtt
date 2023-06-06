@@ -15,3 +15,19 @@ Run on the vending machine:
 ```
 MQTT_BROKER=tcp://192.168.0.10:1883 MQTT_USERNAME=matemat MQTT_PASSWORD=mqttpassword ./main
 ```
+
+### Features
+
+Publishes the following mqtt topics:
+- `homeassistant/binary_sensor/matematdoor/config` - home assistant mqtt discovery
+- `sielaff2mqtt/door/availability`
+- `sielaff2mqtt/door/state`
+- `homeassistant/sensor/matematcoolingtemperature/config` - home assistant mqtt discovery
+- `sielaff2mqtt/matematcoolingtemperature/availability`
+- `sielaff2mqtt/matematcoolingtemperature/state`
+
+### TODO
+- [ ] Add more sensors
+- [ ] Make mqtt topic prefix configurable
+- [ ] Make mqtt device name configurable
+- [ ] Implement device part of home assistant mqtt discovery
