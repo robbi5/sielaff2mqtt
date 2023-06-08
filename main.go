@@ -26,6 +26,7 @@ func main() {
 	mqttBrokerPtr := flag.String("broker", getEnv("MQTT_BROKER", "tcp://localhost:1883"), "MQTT Broker hostname/ip")
 	mqttUsernamePtr := flag.String("username", getEnv("MQTT_USERNAME", "sielaff2mqtt"), "MQTT Broker username")
 	mqttPasswordPtr := flag.String("password", getEnv("MQTT_PASSWORD", ""), "MQTT Broker password")
+	mqttPrefixPtr := flag.String("prefix", getEnv("MQTT_PREFIX", "sielaff2mqtt"), "MQTT prefix")
 	flag.Parse()
 
 	dbusConn, err := dbus.ConnectSystemBus()
@@ -56,21 +57,21 @@ func main() {
 
 			// homeassistant auto discovery
 			doorHassConfigTopic := "homeassistant/binary_sensor/matematdoor/config"
-			token := c.Publish(doorHassConfigTopic, 2, true, `{"name":"Matemat Door", "availability_topic": "sielaff2mqtt/door/availability", "unique_id": "matematdoor", "state_topic": "sielaff2mqtt/door/state", "device_class": "door", "payload_on": "open", "payload_off":"closed"}`)
+			token := c.Publish(doorHassConfigTopic, 2, true, fmt.Sprintf(`{"name":"Matemat Door", "availability_topic": "%[1]s/door/availability", "unique_id": "matematdoor", "state_topic": "%[1]s/door/state", "device_class": "door", "payload_on": "open", "payload_off":"closed"}`, *mqttPrefixPtr))
 			token.Wait()
 
-			token = c.Publish("sielaff2mqtt/door/availability", 2, true, "online")
+			token = c.Publish(*mqttPrefixPtr+"/door/availability", 2, true, "online")
 			token.Wait()
 
-			token = c.Publish("sielaff2mqtt/door/state", 2, false, "closed")
+			token = c.Publish(*mqttPrefixPtr+"/door/state", 2, false, "closed")
 			token.Wait()
 
 			// homeassistant auto discovery
 			coolingTemperatureHassConfigTopic := "homeassistant/sensor/matematcoolingtemperature/config"
-			token = c.Publish(coolingTemperatureHassConfigTopic, 2, true, `{"name":"Matemat Cooling Temperature", "availability_topic": "sielaff2mqtt/matematcoolingtemperature/availability", "unique_id": "matematcoolingtemperature", "state_topic": "sielaff2mqtt/matematcoolingtemperature/state", "device_class": "temperature", "unit_of_measurement": "°C"}`)
+			token = c.Publish(coolingTemperatureHassConfigTopic, 2, true, fmt.Sprintf(`{"name":"Matemat Cooling Temperature", "availability_topic": "%[1]s/matematcoolingtemperature/availability", "unique_id": "matematcoolingtemperature", "state_topic": "%[1]s/matematcoolingtemperature/state", "device_class": "temperature", "unit_of_measurement": "°C"}`, *mqttPrefixPtr))
 			token.Wait()
 
-			token = c.Publish("sielaff2mqtt/matematcoolingtemperature/availability", 2, true, "online")
+			token = c.Publish(*mqttPrefixPtr+"/matematcoolingtemperature/availability", 2, true, "online")
 			token.Wait()
 
 			log.Println("MQTT topics published")
@@ -119,7 +120,7 @@ func main() {
 			v.Body[2].(dbus.Variant).Store(&temp)
 			log.Println("cooling product.temperature", fmt.Sprintf("%.2f", temp))
 
-			token := client.Publish("sielaff2mqtt/matematcoolingtemperature/state", 2, false, fmt.Sprintf("%.2f", temp))
+			token := client.Publish(*mqttPrefixPtr+"/matematcoolingtemperature/state", 2, false, fmt.Sprintf("%.2f", temp))
 			token.Wait()
 		}
 	}()
@@ -136,10 +137,10 @@ func main() {
 	dbusConn.RemoveMatchSignal(matchSensorValue...)
 
 	// unsubscribe mqtt
-	token := client.Publish("sielaff2mqtt/door/availability", 2, true, "offline")
+	token := client.Publish(*mqttPrefixPtr+"/door/availability", 2, true, "offline")
 	token.Wait()
 
-	token = client.Publish("sielaff2mqtt/matematcoolingtemperature/availability", 2, true, "offline")
+	token = client.Publish(*mqttPrefixPtr+"/matematcoolingtemperature/availability", 2, true, "offline")
 	token.Wait()
 
 	log.Println("All Devices Unsubscribed")

@@ -26,8 +26,9 @@ Publishes the following mqtt topics:
 - `sielaff2mqtt/matematcoolingtemperature/availability`
 - `sielaff2mqtt/matematcoolingtemperature/state`
 
+You can change `sielaff2mqtt` by setting the `MQTT_PREFIX` environment variable or using the `--prefix` flag.
+
 ### TODO
 - [ ] Add more sensors
-- [ ] Make mqtt topic prefix configurable
 - [ ] Make mqtt device name configurable
 - [ ] Implement device part of home assistant mqtt discovery
