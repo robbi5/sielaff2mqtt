@@ -56,14 +56,11 @@ func main() {
 			log.Println("Connected to MQTT")
 
 			// homeassistant auto discovery
-			doorHassConfigTopic := "homeassistant/binary_sensor/matematdoor/config"
-			token := c.Publish(doorHassConfigTopic, 2, true, fmt.Sprintf(`{"name":"Matemat Door", "availability_topic": "%[1]s/door/availability", "unique_id": "matematdoor", "state_topic": "%[1]s/door/state", "device_class": "door", "payload_on": "open", "payload_off":"closed"}`, *mqttPrefixPtr))
+			doorHassConfigTopic := "homeassistant/binary_sensor/matematvend/config"
+			token := c.Publish(doorHassConfigTopic, 2, true, fmt.Sprintf(`{"name":"Matemat Vending Enabled", "availability_topic": "%[1]s/matematvend/availability", "unique_id": "matematvend", "state_topic": "%[1]s/matematvend/state", "device_class": "running"}`, *mqttPrefixPtr))
 			token.Wait()
 
-			token = c.Publish(*mqttPrefixPtr+"/door/availability", 2, true, "online")
-			token.Wait()
-
-			token = c.Publish(*mqttPrefixPtr+"/door/state", 2, false, "closed")
+			token = c.Publish(*mqttPrefixPtr+"/matematvend/availability", 2, true, "online")
 			token.Wait()
 
 			// homeassistant auto discovery
@@ -90,8 +87,16 @@ func main() {
 		dbus.WithMatchInterface("com.sielaff.siline.machine.MachineControl"),
 		dbus.WithMatchMember("sensorValue"),
 	}
-
 	if err = dbusConn.AddMatchSignal(matchSensorValue...); err != nil {
+		log.Fatal(err)
+	}
+
+	var matchVendValue = []dbus.MatchOption{
+		dbus.WithMatchObjectPath("/"),
+		dbus.WithMatchInterface("com.sielaff.siline.payment"),
+		dbus.WithMatchMember("vendEnabled"),
+	}
+	if err = dbusConn.AddMatchSignal(matchVendValue...); err != nil {
 		log.Fatal(err)
 	}
 
@@ -103,25 +108,36 @@ func main() {
 		for v := range sensorChan {
 			log.Println(v)
 
-			if v.Name != "com.sielaff.siline.machine.MachineControl.sensorValue" {
-				log.Println("ignored signal", v.Name)
-				continue
-			}
-			if v.Body[0] != "Cooling" {
-				log.Println("ignored sensorValue", v.Body[0])
-				continue
-			}
-			if v.Body[1] != "product.temperature" {
-				log.Println("ignored sensorValue path", v.Body[1])
-				continue
-			}
+			if v.Name == "com.sielaff.siline.machine.MachineControl.sensorValue" {
+				if v.Body[0] != "Cooling" {
+					log.Println("ignored sensorValue", v.Body[0])
+					continue
+				}
+				if v.Body[1] != "product.temperature" {
+					log.Println("ignored sensorValue path", v.Body[1])
+					continue
+				}
 
-			var temp float64
-			v.Body[2].(dbus.Variant).Store(&temp)
-			log.Println("cooling product.temperature", fmt.Sprintf("%.2f", temp))
+				var temp float64
+				v.Body[2].(dbus.Variant).Store(&temp)
+				log.Println("cooling product.temperature", fmt.Sprintf("%.2f", temp))
 
-			token := client.Publish(*mqttPrefixPtr+"/matematcoolingtemperature/state", 2, false, fmt.Sprintf("%.2f", temp))
-			token.Wait()
+				token := client.Publish(*mqttPrefixPtr+"/matematcoolingtemperature/state", 2, false, fmt.Sprintf("%.2f", temp))
+				token.Wait()
+			} else if v.Name == "com.sielaff.siline.payment.vendEnabled" {
+				var enabled bool
+				v.Body[0].(dbus.Variant).Store(&enabled)
+				log.Println("vendEnabled", fmt.Sprintf("%t", enabled))
+
+				var state string
+				if enabled {
+					state = "on"
+				} else {
+					state = "off"
+				}
+				token := client.Publish(*mqttPrefixPtr+"/matematvend/state", 2, false, state)
+				token.Wait()
+			}
 		}
 	}()
 
@@ -135,9 +151,10 @@ func main() {
 
 	// unsubscribe dbus
 	dbusConn.RemoveMatchSignal(matchSensorValue...)
+	dbusConn.RemoveMatchSignal(matchVendValue...)
 
 	// unsubscribe mqtt
-	token := client.Publish(*mqttPrefixPtr+"/door/availability", 2, true, "offline")
+	token := client.Publish(*mqttPrefixPtr+"/matematvend/availability", 2, true, "offline")
 	token.Wait()
 
 	token = client.Publish(*mqttPrefixPtr+"/matematcoolingtemperature/availability", 2, true, "offline")

@@ -18,10 +18,14 @@ MQTT_BROKER=tcp://192.168.0.10:1883 MQTT_USERNAME=matemat MQTT_PASSWORD=mqttpass
 
 ### Features
 
+Currently detecting changes in the following dbus signals:
+- `signal path=/; interface=com.sielaff.siline.payment; member=vendEnabled` (Vending Enabled)
+- `signal path=/MachineControl; interface=com.sielaff.siline.machine.MachineControl; member=sensorValue` (Cooling Temperature)
+
 Publishes the following mqtt topics:
-- `homeassistant/binary_sensor/matematdoor/config` - home assistant mqtt discovery
-- `sielaff2mqtt/door/availability`
-- `sielaff2mqtt/door/state`
+- `homeassistant/binary_sensor/matematvend/config` - home assistant mqtt discovery
+- `sielaff2mqtt/matematvend/availability`
+- `sielaff2mqtt/matematvend/state`
 - `homeassistant/sensor/matematcoolingtemperature/config` - home assistant mqtt discovery
 - `sielaff2mqtt/matematcoolingtemperature/availability`
 - `sielaff2mqtt/matematcoolingtemperature/state`
