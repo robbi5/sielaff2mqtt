@@ -56,11 +56,19 @@ func main() {
 			log.Println("Connected to MQTT")
 
 			// homeassistant auto discovery
-			doorHassConfigTopic := "homeassistant/binary_sensor/matematvend/config"
-			token := c.Publish(doorHassConfigTopic, 2, true, fmt.Sprintf(`{"name":"Matemat Vending Enabled", "availability_topic": "%[1]s/matematvend/availability", "unique_id": "matematvend", "state_topic": "%[1]s/matematvend/state", "device_class": "running"}`, *mqttPrefixPtr))
+			vendHassConfigTopic := "homeassistant/binary_sensor/matematvend/config"
+			token := c.Publish(vendHassConfigTopic, 2, true, fmt.Sprintf(`{"name":"Matemat Vending Enabled", "availability_topic": "%[1]s/matematvend/availability", "unique_id": "matematvend", "state_topic": "%[1]s/matematvend/state", "device_class": "running"}`, *mqttPrefixPtr))
 			token.Wait()
 
 			token = c.Publish(*mqttPrefixPtr+"/matematvend/availability", 2, true, "online")
+			token.Wait()
+
+			// homeassistant auto discovery
+			serviceMenuHassConfigTopic := "homeassistant/binary_sensor/matematservicemenu/config"
+			token = c.Publish(serviceMenuHassConfigTopic, 2, true, fmt.Sprintf(`{"name":"Matemat Service Menu", "availability_topic": "%[1]s/matematservicemenu/availability", "unique_id": "matematservicemenu", "state_topic": "%[1]s/matematservicemenu/state"}`, *mqttPrefixPtr))
+			token.Wait()
+
+			token = c.Publish(*mqttPrefixPtr+"/matematservicemenu/availability", 2, true, "online")
 			token.Wait()
 
 			// homeassistant auto discovery
@@ -97,6 +105,15 @@ func main() {
 		dbus.WithMatchMember("vendEnabled"),
 	}
 	if err = dbusConn.AddMatchSignal(matchVendValue...); err != nil {
+		log.Fatal(err)
+	}
+
+	var matchServiceMenuValue = []dbus.MatchOption{
+		dbus.WithMatchObjectPath("/"),
+		dbus.WithMatchInterface("com.sielaff.siline.hmi"),
+		dbus.WithMatchMember("serviceMenuActivated"),
+	}
+	if err = dbusConn.AddMatchSignal(matchServiceMenuValue...); err != nil {
 		log.Fatal(err)
 	}
 
@@ -137,6 +154,19 @@ func main() {
 				}
 				token := client.Publish(*mqttPrefixPtr+"/matematvend/state", 2, false, state)
 				token.Wait()
+			} else if v.Name == "com.sielaff.siline.hmi.serviceMenuActivated" {
+				var active bool
+				v.Body[0].(dbus.Variant).Store(&active)
+				log.Println("service menu active", fmt.Sprintf("%t", active))
+
+				var state string
+				if active {
+					state = "on"
+				} else {
+					state = "off"
+				}
+				token := client.Publish(*mqttPrefixPtr+"/matematservicemenu/state", 2, false, state)
+				token.Wait()
 			}
 		}
 	}()
@@ -155,6 +185,9 @@ func main() {
 
 	// unsubscribe mqtt
 	token := client.Publish(*mqttPrefixPtr+"/matematvend/availability", 2, true, "offline")
+	token.Wait()
+
+	token = client.Publish(*mqttPrefixPtr+"/matematservicemenu/availability", 2, true, "offline")
 	token.Wait()
 
 	token = client.Publish(*mqttPrefixPtr+"/matematcoolingtemperature/availability", 2, true, "offline")
