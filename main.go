@@ -142,8 +142,7 @@ func main() {
 				token := client.Publish(*mqttPrefixPtr+"/matematcoolingtemperature/state", 2, false, fmt.Sprintf("%.2f", temp))
 				token.Wait()
 			} else if v.Name == "com.sielaff.siline.payment.vendEnabled" {
-				var enabled bool
-				v.Body[0].(dbus.Variant).Store(&enabled)
+				var enabled bool = v.Body[0].(bool)
 				log.Println("vendEnabled", fmt.Sprintf("%t", enabled))
 
 				var state string
@@ -155,8 +154,7 @@ func main() {
 				token := client.Publish(*mqttPrefixPtr+"/matematvend/state", 2, false, state)
 				token.Wait()
 			} else if v.Name == "com.sielaff.siline.hmi.serviceMenuActivated" {
-				var active bool
-				v.Body[0].(dbus.Variant).Store(&active)
+				var active bool = v.Body[0].(bool)
 				log.Println("service menu active", fmt.Sprintf("%t", active))
 
 				var state string
