@@ -40,3 +40,7 @@ You can change `sielaff2mqtt` by setting the `MQTT_PREFIX` environment variable 
 - [ ] Add more sensors
 - [ ] Make mqtt device name configurable
 - [ ] Implement device part of home assistant mqtt discovery
+
+#### How to add new sensors
+
+Run `dbus-monitor --system` on your vending machine and look out for the `signal` lines.
