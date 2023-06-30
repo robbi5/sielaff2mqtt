@@ -147,9 +147,9 @@ func main() {
 
 				var state string
 				if enabled {
-					state = "on"
+					state = "ON"
 				} else {
-					state = "off"
+					state = "OFF"
 				}
 				token := client.Publish(*mqttPrefixPtr+"/matematvend/state", 2, false, state)
 				token.Wait()
@@ -159,9 +159,9 @@ func main() {
 
 				var state string
 				if active {
-					state = "on"
+					state = "ON"
 				} else {
-					state = "off"
+					state = "OFF"
 				}
 				token := client.Publish(*mqttPrefixPtr+"/matematservicemenu/state", 2, false, state)
 				token.Wait()
