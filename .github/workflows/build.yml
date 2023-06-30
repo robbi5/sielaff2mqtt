@@ -1,0 +1,31 @@
+name: build
+on:
+  push:
+    branches:
+    - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4.0.1
+      - name: Build
+        env:
+          GOARCH: arm
+          GOARM: 7
+          GOOS: linux
+        run: go build -o sielaff2mqtt main.go
+      - name: Upload
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: sielaff2mqtt
+          path: sielaff2mqtt
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: sielaff2mqtt
